@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <error.h>
 #include <errno.h>
+#include <ncurses.h>
 
 #define MAXLEN 50
 #define COLS 40
