@@ -78,7 +78,7 @@ void commands(char* command, char map[ROWS][COLS])
     mvprintw(3, 10, "___________________________________________________"); // mensagem fora da janela, na linha 2, coluna 10 do ecrã
     WINDOW *janelaTopo = newwin(17, 40, 4, 16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
     WINDOW *janelaBaixo = newwin(5, 40, 21, 1);  
-    WINDOW *janelaBot = newwin(5, 40, 26, 1);
+    WINDOW *janelaBot = newwin(3, 40, 26, 1);
     desenhaMapa(janelaTopo, 2, map);  // função exemplo que desenha o janela no ecrã
     desenhaMapa(janelaBaixo, 1, map);  // função exemplo que desenha o janela no ecrã
     desenhaMapa(janelaBot, 1, map);  // função exemplo que desenha o janela no ecrã
