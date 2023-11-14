@@ -8,6 +8,9 @@ int main(int argc, char* argv[], char* envp[])
     exit(1);
   }
 
+  char map[ROWS][COLS];
+  readMap(map, 1);
+
   char* command = (char *) malloc(sizeof(char) * MAXLEN);
   do
   {
@@ -15,6 +18,8 @@ int main(int argc, char* argv[], char* envp[])
     fgets(command, MAXLEN, stdin);
     commands(command);
   } while(strcmp(command, "end"));
+
+  free(command);
 }
 
 void commands(char* command)
@@ -113,7 +118,6 @@ void endCommand()
 void testBotCommand(char* interval, char* duration) {
   int PID_bot, nBytes, state;
   int pipeBotMotor[2];
-  char* botInfo = (char *) malloc(sizeof(MAXLEN));
 
   // Verificação da correta criação do pipeBotMotor.
   if (pipe(pipeBotMotor) == -1)
@@ -150,6 +154,7 @@ void testBotCommand(char* interval, char* duration) {
   }
   else
   {
+    char* botInfo = (char *) malloc(MAXLEN);
     // Motor (Parent process)
     printf("Bot PID: %d\n\n", PID_bot);
     // Fecho do terminal do pipe que não será utilizado.
@@ -168,8 +173,27 @@ void testBotCommand(char* interval, char* duration) {
 
       int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
       printf("Recebi: %d %d %d\n\n", x, y, d);
+      free(botInfo);
     }
-    // printf("\nO bot terminou com %d.\n", WEXITSTATUS(state));
+  }
+}
+
+void readMap(char map[ROWS][COLS], int level) {
+  char filename[8];
+  sprintf(filename, "%s%d%s", "../levels/map", level, ".txt");
+
+  int fileD = open(filename, O_RDONLY);
+  if(fileD == -1) {
+    printf("[ERRO]: Erro ao abrir o ficheiro %s", filename);
+    perror("");
+    exit(1);
+  }
+  char c;
+  for(int row = 0; row < ROWS; row++) {
+    for(int col = 0; col < COLS; col ++) {
+      read(fileD, &map[row][col], 1);
+    }
+    read(fileD, &c, 1);
   }
 }
 

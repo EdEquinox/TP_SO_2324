@@ -9,3 +9,4 @@ void rbmCommand();
 void beginCommand();
 void endCommand();
 void testBotCommand(char* interval, char* duration);
+void readMap(char map[ROWS][COLS], int level);
