@@ -2,8 +2,7 @@
 
 int main(int argc, char* argv[], char* envp[])
 {
-  if(argc != 1)
-  {
+  if(argc != 1) {
     printf("[ERRO]: Argumento invalido.\n");
     exit(1);
   }
@@ -12,8 +11,7 @@ int main(int argc, char* argv[], char* envp[])
   readMap(map, 1);
 
   char* command = (char *) malloc(sizeof(char) * MAXLEN);
-  do
-  {
+  do {
     printf("Introduza um comando: ");
     fgets(command, MAXLEN, stdin);
     commands(command);
@@ -22,56 +20,45 @@ int main(int argc, char* argv[], char* envp[])
   free(command);
 }
 
-void commands(char* command)
-{
+void commands(char* command) {
   char* commandAux = strtok(command, " \n");
   char* arg;
 
   printf("\nComando: [%s]\n", commandAux);
-  if(!strcmp(commandAux, "users"))
-  {
+  if(!strcmp(commandAux, "users")) {
     usersCommand();
   }
-  else if(!strcmp(commandAux, "kick"))
-  {
+  else if(!strcmp(commandAux, "kick")) {
     arg = strtok(NULL, " ");
     if(arg == NULL)
       printf("[ERRO] Syntax: kick <username>\n");
-    else
-    {
+    else {
       printf("username: %s\n", arg);
       kickCommand(arg);
     }
   }
-  else if(!strcmp(commandAux, "bots"))
-  {
+  else if(!strcmp(commandAux, "bots")) {
     botsCommand();
   }
-  else if(!strcmp(commandAux, "bmov"))
-  {
+  else if(!strcmp(commandAux, "bmov")) {
     bmovCommand();
   }
-  else if(!strcmp(commandAux, "rbm"))
-  {
+  else if(!strcmp(commandAux, "rbm")) {
     rbmCommand();
   }
-  else if(!strcmp(commandAux, "begin"))
-  {
+  else if(!strcmp(commandAux, "begin")) {
     beginCommand();
   }
-  else if(!strcmp(commandAux, "end"))
-  {
+  else if(!strcmp(commandAux, "end")) {
     endCommand();
     strcpy(command, "end");
   }
-  else if(!strcmp(commandAux, "test_bot"))
-  {
+  else if(!strcmp(commandAux, "test_bot")) {
     char* interval  = strtok(NULL, " ");
     char* duration = strtok(NULL, " ");
     if(interval == NULL || duration == NULL)
       printf("[ERRO] Syntax: test_bot <interval> <duration>\n");
-    else
-    {
+    else {
       printf("interval: %s\n", interval);
       printf("duration: %s\n", duration);
       testBotCommand(interval, duration);
@@ -80,38 +67,31 @@ void commands(char* command)
   else printf(("[ERRO]: Comando invalido.\n"));
 }
 
-void usersCommand()
-{
+void usersCommand() {
   printf("\nComando [users] nao implementado.\n");
 }
 
-void kickCommand(char *username)
-{
+void kickCommand(char *username) {
   printf("\nComando [kick] nao implementado.\n");
 }
 
-void botsCommand()
-{
+void botsCommand() {
   printf("\nComando [bots] nao implementado.\n");
 }
 
-void bmovCommand()
-{
+void bmovCommand() {
   printf("\nComando [bmov] nao implementado.\n");
 }
 
-void rbmCommand()
-{
+void rbmCommand() {
   printf("\nComando [rbm] nao implementado.\n");
 }
 
-void beginCommand()
-{
+void beginCommand() {
   printf("\nComando [begin] nao implementado.\n");
 }
 
-void endCommand()
-{
+void endCommand() {
   printf("\nComando [end] nao implementado.\n");
 }
 
@@ -120,22 +100,19 @@ void testBotCommand(char* interval, char* duration) {
   int pipeBotMotor[2];
 
   // Verificação da correta criação do pipeBotMotor.
-  if (pipe(pipeBotMotor) == -1)
-  {
+  if (pipe(pipeBotMotor) == -1) {
     printf("[ERRO]: Nao foi possível criar o pipe para comunicacao com o Bot.\n");
     exit(1);
   }
 
   // Verificação da correta execução do fork.
   PID_bot = fork();
-  if (PID_bot == -1)
-  {
+  if (PID_bot == -1) {
     printf("[ERRO]: O fork falhou.\n");
     exit(2);
   }
 
-  if (PID_bot == 0)
-  {
+  if (PID_bot == 0) {
     // Bot (Child Process)
 
     // Fecho dos terminais dos pipes que não serão utilizados.
@@ -152,8 +129,7 @@ void testBotCommand(char* interval, char* duration) {
     printf("[ERRO]: bot nao encontrado.\n");
     exit(3);
   }
-  else
-  {
+  else {
     char* botInfo = (char *) malloc(MAXLEN);
     // Motor (Parent process)
     printf("Bot PID: %d\n\n", PID_bot);
@@ -173,15 +149,15 @@ void testBotCommand(char* interval, char* duration) {
 
       int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
       printf("Recebi: %d %d %d\n\n", x, y, d);
-      free(botInfo);
     }
+    free(botInfo);
   }
 }
 
 void readMap(char map[ROWS][COLS], int level) {
-  char filename[8];
+  char filename[20];
   sprintf(filename, "%s%d%s", "../levels/map", level, ".txt");
-
+  
   int fileD = open(filename, O_RDONLY);
   if(fileD == -1) {
     printf("[ERRO]: Erro ao abrir o ficheiro %s", filename);
