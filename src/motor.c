@@ -10,13 +10,19 @@ int main(int argc, char* argv[], char* envp[])
   char map[ROWS][COLS];
   readMap(map, 1);
 
+  for(int row = 0; row < ROWS; row++) {
+    for(int col = 0; col < COLS; col ++) {
+      printf("%c", map[row][col]);
+    }
+    printf("\n");
+  }
+
   char* command = (char *) malloc(sizeof(char) * MAXLEN);
   do {
     printf("Introduza um comando: ");
     fgets(command, MAXLEN, stdin);
     commands(command);
   } while(strcmp(command, "end"));
-
   free(command);
 }
 
@@ -24,6 +30,8 @@ void commands(char* command) {
   char* commandAux = strtok(command, " \n");
   char* arg;
 
+  if(commandAux == NULL)
+    return;
   printf("\nComando: [%s]\n", commandAux);
   if(!strcmp(commandAux, "users")) {
     usersCommand();
@@ -157,11 +165,10 @@ void testBotCommand(char* interval, char* duration) {
 void readMap(char map[ROWS][COLS], int level) {
   char filename[20];
   sprintf(filename, "%s%d%s", "../levels/map", level, ".txt");
-  
+
   int fileD = open(filename, O_RDONLY);
   if(fileD == -1) {
     printf("[ERRO]: Erro ao abrir o ficheiro %s", filename);
-    perror("");
     exit(1);
   }
   char c;
