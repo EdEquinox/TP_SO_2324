@@ -1,23 +1,20 @@
 #include "utils.h"
 
-void commands(char* command, char map[ROWS][COLS]);
-void usersCommand();
-void kickCommand(char *username);
-void botsCommand();
-void bmovCommand();
-void rbmCommand();
-void beginCommand();
-void endCommand();
-void testBotCommand(char* interval, char* duration);
-void readMap(char map[ROWS][COLS], int level);
-void testBotCommandCurses(char* interval, char* duration, WINDOW *janelaBaixo, WINDOW *janelaTopo, WINDOW *janelaBot, int tecla);
-void desenhaMapa(WINDOW *janela, int tipo, char map[ROWS][COLS]);
-void trataTeclado(WINDOW *janelaTopo, WINDOW *janelaBaixo, WINDOW *janelaBot, char map[ROWS][COLS]);
-void commandsCurses(char* command, WINDOW *janelaBaixo, WINDOW *janelaTopo, WINDOW *janelaBot, int tecla);
-void usersCommandCurses(WINDOW *janelaBaixo);
-void kickCommandCurses(char *username, WINDOW *janelaBaixo);
-void botsCommandCurses(WINDOW *janelaBaixo);
-void bmovCommandCurses(WINDOW *janelaBaixo);
-void rbmCommandCurses(WINDOW *janelaBaixo);
-void beginCommandCurses(WINDOW *janelaBaixo);
-void endCommandCurses(WINDOW *janelaBaixo);
+#define NBOTS 1
+
+// Vars. globais
+WINDOW *janelaMapa, *janelaComandos, *janelaBot;
+char map[ROWS][COLS]; // matriz que representa o mapa do jogo
+int botPID[NBOTS];
+
+void testBotCommandCurses(char* interval, char* duration, int tecla);
+void desenhaJanela(WINDOW *janela, int tipo);
+void trataTeclado();
+int commandsCurses(char* command, int tecla);
+void usersCommandCurses();
+void kickCommandCurses(char *username);
+void botsCommandCurses();
+void bmovCommandCurses();
+void rbmCommandCurses();
+void beginCommandCurses();
+void endCommandCurses();

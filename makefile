@@ -1,12 +1,12 @@
-all: motor jogoUI
+all: ./out/motor ./out/jogoUI
 
-motor: bot ./src/motor.c ./src/motor.h ./src/utils.h
+./out/motor: ./out/bot ./src/motor.c ./src/motor.h ./src/utils.h
 	gcc ./src/motor.c -o ./out/motor -lncurses
 
-jogoUI: ./src/jogoUI.c ./src/jogoUI.h ./src/utils.h
-	gcc ./src/jogoUI.c -o ./out/jogoUI
+./out/jogoUI: ./src/jogoUI.c ./src/jogoUI.h ./src/utils.h
+	gcc ./src/jogoUI.c -o ./out/jogoUI -lncurses
 
-bot: ./src/bot.c
+./out/bot: ./src/bot.c
 	gcc ./src/bot.c -o ./out/bot
 
 clean:
