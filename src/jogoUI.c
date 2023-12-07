@@ -156,6 +156,12 @@ int main(int argc, char *argv[], char *envp[]) {
     exit(1);
   }
 
+  // Verificar se o SERVER_FIFO existe
+  if(access(SERVER_FIFO, F_OK) != 0) {
+    printf("[ERRO] O FIFO do Servidor não existe.\n");
+    exit(1);
+  }
+
   playerName = argv[1];
 
   // Criação do FIFO do Cliente
