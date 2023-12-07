@@ -1,11 +1,42 @@
 #include "utils.h"
 
 #define NBOTS 1
+#define MAX_PLAYERS 5
+#define MAX_BOTS 10
+#define MAX_ROCKS 50
+#define MAX_BLOCKS 5
+#define MAX_LEVELS 3
+
+typedef struct {
+  int pid;
+  int x;
+  int y;
+} Player;
+
+typedef struct {
+  int id;
+  int x;
+  int y;
+} Block;
+
+typedef struct {
+  int id;
+  int x;
+  int y;
+} Rock;
+
+typedef struct {
+  int level;
+  char map[ROWS][COLS];
+  Player players[MAX_PLAYERS];
+  Block blocks[MAX_BLOCKS];
+  Rock rocks[MAX_ROCKS];
+} GameInfo;
 
 // Vars. globais
 WINDOW *janelaMapa, *janelaComandos, *janelaBot;
-char map[ROWS][COLS]; // matriz que representa o mapa do jogo
-int botPID[NBOTS];
+int botPID[MAX_BOTS];
+GameInfo gameInfo;
 
 void testBotCommandCurses(char* interval, char* duration, int tecla);
 void desenhaJanela(WINDOW *janela, int tipo);

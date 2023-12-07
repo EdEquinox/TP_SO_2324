@@ -214,7 +214,7 @@ void readMap(int level) {
   char c;
   for (int row = 0; row < ROWS; row++) { // Ler o mapa do ficheiro.
     for (int col = 0; col < COLS; col++) {
-      read(fileD, &map[row][col], 1);
+      read(fileD, &gameInfo.map[row][col], 1);
     }
     read(fileD, &c, 1);
   }
@@ -230,7 +230,7 @@ void desenhaJanela(WINDOW *janela, int tipo) {
 
     for (int row = 0; row < ROWS; row++) { // Imprime o mapa na janela.
       for (int col = 0; col < COLS; col++) {
-        wprintw(janela, "%c", map[row][col]);
+        wprintw(janela, "%c", gameInfo.map[row][col]);
       }
     }
   } else if (tipo == 3) {
