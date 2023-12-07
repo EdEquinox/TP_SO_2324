@@ -46,8 +46,6 @@ int commandsCurses(char* command, int tecla){
   else if(!strcmp(commandAux, "end")) // Comando end.
   {
     endCommandCurses();
-    strcpy(command, "end");
-    return 1;
   }
   else if(!strcmp(commandAux, "test_bot")) // Comando test_bot.
   {
@@ -66,8 +64,8 @@ int commandsCurses(char* command, int tecla){
   else wprintw(janelaComandos,("[ERRO]: Comando invalido.\n")); // Comando inválido.
 }
 
-void testBotCommandCurses(char* interval, char* duration, int tecla) // Função que trata do comando test_bot.
-{
+// Função que trata do comando test_bot.
+void testBotCommandCurses(char* interval, char* duration, int tecla) {
   int nBytes, state; // nBytes: número de bytes recebidos do bot
   int pipeBotMotor[2]; // pipeBotMotor: pipe para comunicação entre o bot e o motor
 
@@ -138,7 +136,7 @@ void testBotCommandCurses(char* interval, char* duration, int tecla) // Função
 
     sigqueue(botPID[0], SIGINT, result);
 
-    wait(&state);
+    // wait(&state);
 
     free(botInfo);          // Libertação da memória alocada para a string botInfo.
     wrefresh(janelaComandos);  // Atualização da janelaComandos.
@@ -179,6 +177,7 @@ void beginCommandCurses() // Função que trata do comando begin.
 
 void endCommandCurses() // Função que trata do comando end.
 {
+  unlink(SERVER_FIFO);
   wprintw(janelaComandos,"\nComando [end] nao implementado.\n");
 }
 
@@ -282,6 +281,7 @@ void trataTeclado() // Função que trata do teclado.
     wmove(janelaMapa, 1, 1); // posiciona o cursor (visualmente) na posicao 1,1 da janelaMapa
     tecla = wgetch(janelaMapa); //espera que o utilizador introduza um inteiro. Importante e como já referido anteriormente introduzir a janela onde queremos receber o input
   }
+  endCommandCurses();
 }
 
 #pragma endregion
@@ -294,12 +294,21 @@ int main(int argc, char* argv[], char* envp[])
     exit(1);
   }
 
-  readMap(1); // Ler o mapa do ficheiro map1.txt
+  // Ler o mapa do ficheiro map1.txt
+  readMap(1);
 
+  // Tratamento do sinal de resize da janela do terminal
   struct sigaction saSIGWINCH;
   saSIGWINCH.sa_sigaction = handler_saSIGWINCH;
   saSIGWINCH.sa_flags = SA_RESTART | SA_SIGINFO;
   sigaction(SIGWINCH, &saSIGWINCH, NULL);
+
+  // Criação do FIFO do Servidor
+  int result = mkfifo(SERVER_FIFO, 0777);
+  if(result == -1) {
+    printf("[ERRO]: Erro ao criar FIFO do Servidor");
+    exit(-1);
+  }
 
   initscr(); // Obrigatorio e sempre a primeira operação de ncurses
   raw();  // desativa o buffer de input, cada tecla é lida imediatamente
