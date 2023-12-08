@@ -171,6 +171,36 @@ void endCommandCurses() {
 
 #pragma region Auxiliar Functions
 
+void getEnvVars(int* inscricao, int* nPlayers, int* duracao, int* decremento) {
+  if(getenv("INSCRICAO") == NULL)
+  {
+    printf("Variavel de Ambiente \"INSCRICAO\" inexistente. Valor atribuído automáticamente.\n\"INSCRICAO\" = 10\n");
+    *inscricao = 10;
+  }
+  else *inscricao = atoi(getenv("INSCRICAO"));
+
+  if(getenv("NPLAYERS") == NULL)
+  {
+    printf("Variavel de Ambiente \"NPLAYERS\" inexistente. Valor atribuído automáticamente.\n\"NPLAYERS\" = 3\n");
+    *nPlayers = 3;
+  }
+  else *nPlayers = atoi(getenv("NPLAYERS"));
+
+  if(getenv("DURACAO") == NULL)
+  {
+    printf("Variavel de Ambiente \"DURACAO\" inexistente. Valor atribuído automáticamente.\n\"DURACAO\" = 40\n");
+    *duracao = 40;
+  }
+  else *duracao = atoi(getenv("DURACAO"));
+
+  if(getenv("DECREMENTO") == NULL)
+  {
+    printf("Variavel de Ambiente \"DECREMENTO\" inexistente. Valor atribuído automáticamente.\n\"DECREMENTO\" = 10\n");
+    *decremento = 10;
+  }
+  else *decremento = atoi(getenv("DECREMENTO"));
+}
+
 // Função que trata o sinal de resize do terminal
 void handler_saSIGWINCH(int sigNum, siginfo_t *info, void *old) {
   int newHeight, newWidth;
@@ -283,6 +313,10 @@ int main(int argc, char *argv[], char *envp[]) {
     printf("[ERRO]: Argumento invalido.\n");
     exit(1);
   }
+
+  int inscricao = 0, nPlayers = 0, duracao = 0, decremento = 0;
+
+  getEnvVars(&inscricao, &nPlayers, &duracao, &decremento);
 
   // Ler o mapa do ficheiro map1.txt
   readMap(1);
