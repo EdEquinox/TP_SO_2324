@@ -21,5 +21,5 @@ typedef struct {
   int pid;
   int messageID;
   char* message;
-} message;
+} Message;
 

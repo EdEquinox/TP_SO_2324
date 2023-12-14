@@ -178,6 +178,17 @@ int main(int argc, char *argv[], char *envp[]) {
   saSIGWINCH.sa_flags = SA_RESTART | SA_SIGINFO;
   sigaction(SIGWINCH, &saSIGWINCH, NULL);
 
+  // TODO add mutex + move this
+  Message message;
+  message.pid = getpid();
+  message.messageID = 0;
+  message.message = playerName;
+
+  int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
+  int nBytes = write(fdServerFIFO, &message, sizeof(Message));
+  close(fdServerFIFO);
+  //
+
   initscr(); // Obrigatorio e sempre a primeira operação de ncurses
   raw();  // desativa o buffer de input, cada tecla é lida imediatamente
   noecho();  // desliga o echo no ecrã, para voltar ativar devem utilizar a função echo();
