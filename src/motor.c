@@ -55,79 +55,84 @@ int commandsCurses(char *command, int tecla) {
 }
 
 // Função que trata do comando test_bot.
-void testBotCommandCurses(char *interval, char *duration, int tecla) {
+void testBotCommandCurses(int level) {
   int nBytes, state; // nBytes: número de bytes recebidos do bot
-  int pipeBotMotor[2]; // pipeBotMotor: pipe para comunicação entre o bot e o motor
+  int pipesBotMotor[MAX_BOTS][2]; // pipeBotMotor: pipe para comunicação entre o bot e o motor
 
-  // Verificação da correta criação do pipeBotMotor.
-  if (pipe(pipeBotMotor) == -1) {
-    wprintw(janelaComandos, "[ERRO]: Nao foi possível criar o pipe para comunicacao com o Bot.\n");
-    exit(1);
-  }
-
-  // Verificação da correta execução do fork.
-  botPID[0] = fork();
-  if (botPID[0] == -1) {
-    wprintw(janelaComandos, "[ERRO]: O fork falhou.\n");
-    exit(2);
-  }
-
-  if (botPID[0] == 0) {
-    // Bot (Child Process)
-
-    // Fecho dos terminais dos pipes que não serão utilizados.
-    close(pipeBotMotor[0]);
-
-    // Fecho e duplicação dos descritores de ficheiros.
-    close(STDOUT_FILENO);
-    dup(pipeBotMotor[1]);
-    close(pipeBotMotor[1]);
-
-    // Execução do bot
-    execl("bot", "bot", interval, duration, NULL);
-
-    // Verificação da correta execução do execl. Se for bem-sucedido, este código será substituído.
-    wprintw(janelaComandos, "[ERRO]: bot nao encontrado.\n");
-    exit(3);
-  } else {
-    // Motor (Parent process)
-    char *botInfo = (char *) malloc(MAXLEN);
-    union sigval result;
-
-    wprintw(janelaComandos, "Bot PID: %d\n\n", botPID[0]);
-
-    // Fecho do terminal do pipe que não será utilizado.
-    close(pipeBotMotor[1]);
-    for (int i = 0; i < 10; i++) {
-      // Recebe a informação do bot.
-      nBytes = read(pipeBotMotor[0], botInfo, MAXLEN);
-
-      if (nBytes == 0) {
-        botPID[0] = -1;
-        break;
-      }
-
-      botInfo[nBytes + 1] = '\0';
-
-      char *xChar = strtok(botInfo, " ");
-      char *yChar = strtok(NULL, " ");
-      char *dChar = strtok(NULL, "\n");
-
-      int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
-      wprintw(janelaBot, "Recebi: %d %d %d\n\n", x, y, d);
-      wrefresh(janelaComandos);
-      wrefresh(janelaBot);
+  for(int i = 0; i < level + 1; i++) {
+    // Verificação da correta criação do pipeBotMotor.
+    if (pipe(pipesBotMotor[i]) == -1) {
+      wprintw(janelaComandos, "[ERRO]: Nao foi possível criar o pipe para comunicacao com o Bot.\n");
+      exit(1);
+    }
+    botPID[i] = fork();
+    // Verificação da correta execução do fork.
+    if (botPID[i] == -1) {
+      wprintw(janelaComandos, "[ERRO]: O fork falhou.\n");
+      exit(2);
     }
 
-    sigqueue(botPID[0], SIGINT, result);
+    if (botPID[i] == 0) {
+      // Bot (Child Process)
 
-    // wait(&state);
+      // Fecho dos terminais dos pipes que não serão utilizados.
+      close(pipesBotMotor[i][0]);
 
-    free(botInfo);          // Libertação da memória alocada para a string botInfo.
-    wrefresh(janelaComandos);  // Atualização da janelaComandos.
-    wclear(janelaBot);      // Limpeza da janelaBot.
-    wrefresh(janelaBot);    // Atualização da janelaBot.
+      // Fecho e duplicação dos descritores de ficheiros.
+      close(STDOUT_FILENO);
+      dup(pipesBotMotor[i][1]);
+      close(pipesBotMotor[i][1]);
+
+      // TODO: change interval and duration
+      // Execução do bot
+      execl("bot", "bot", interval, duration, NULL);
+
+      // Verificação da correta execução do execl. Se for bem-sucedido, este código será substituído.
+      wprintw(janelaComandos, "[ERRO]: bot nao encontrado.\n");
+      exit(3);
+    }
+    // Fecho do terminal do pipe que não será utilizado.
+    close(pipesBotMotor[i][1]);
   }
+
+  // Motor (Parent process)
+  char *botInfo = (char *) malloc(MAXLEN);
+  union sigval result;
+
+  while(1) {
+
+    // TODO: Select
+
+    // Recebe a informação do bot.
+    nBytes = read(pipesBotMotor[i][0], botInfo, MAXLEN);
+
+    if (nBytes == 0) {
+      break;
+    }
+
+    botInfo[nBytes + 1] = '\0';
+
+    char *xChar = strtok(botInfo, " ");
+    char *yChar = strtok(NULL, " ");
+    char *dChar = strtok(NULL, "\n");
+
+    int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
+    wprintw(janelaBot, "Recebi: %d %d %d\n\n", x, y, d);
+
+    //TODO: processar info do bot
+    wrefresh(janelaComandos);
+    wrefresh(janelaBot);
+  }
+
+  // TODO: fix the fucking window (??? bug, welp)
+  for(int i = 0; i < level + 1; i++) {
+    waitpid(botPID[i], &estado, NULL);
+  }
+
+  free(botInfo);          // Libertação da memória alocada para a string botInfo.
+  wrefresh(janelaComandos);  // Atualização da janelaComandos.
+  wclear(janelaBot);      // Limpeza da janelaBot.
+  wrefresh(janelaBot);    // Atualização da janelaBot.
 }
 
 // Função que trata do comando users.
