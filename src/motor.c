@@ -2,14 +2,14 @@
 
 #pragma region Curses Commands
 
-int commandsCurses(char *command, int tecla) {
+void commandsCurses(char *command, int tecla) {
 
   char *commandAux = strtok(command, " \n");
   char *arg;
 
   if (commandAux == NULL) // Verificação da correta utilização do programa.
   {
-    return 0;
+    return;
   }
 
   if (!strcmp(commandAux, "users")) // Comando users.
@@ -41,21 +41,16 @@ int commandsCurses(char *command, int tecla) {
     endCommandCurses();
   } else if (!strcmp(commandAux, "test_bot")) // Comando test_bot.
   {
-    char *interval = strtok(NULL, " ");
-    char *duration = strtok(NULL, " ");
-    if (interval == NULL || duration == NULL)
-      wprintw(janelaComandos, "[ERRO] Syntax: test_bot <interval> <duration>\n");
-    else {
-      wprintw(janelaComandos, "interval: %s\n", interval);
-      wprintw(janelaComandos, "duration: %s\n", duration);
-
-      testBotCommandCurses(interval, duration, tecla);
-    }
+    //TODO: change level
+    testBotCommandCurses(1);
   } else wprintw(janelaComandos, ("[ERRO]: Comando invalido.\n")); // Comando inválido.
 }
 
 // Função que trata do comando test_bot.
 void testBotCommandCurses(int level) {
+
+  //janelaBot = newwin(3, 40, 26, 1);
+
   int nBytes, state; // nBytes: número de bytes recebidos do bot
   int pipesBotMotor[MAX_BOTS][2]; // pipeBotMotor: pipe para comunicação entre o bot e o motor
 
@@ -65,6 +60,7 @@ void testBotCommandCurses(int level) {
       wprintw(janelaComandos, "[ERRO]: Nao foi possível criar o pipe para comunicacao com o Bot.\n");
       exit(1);
     }
+
     botPID[i] = fork();
     // Verificação da correta execução do fork.
     if (botPID[i] == -1) {
@@ -77,13 +73,14 @@ void testBotCommandCurses(int level) {
 
       // Fecho dos terminais dos pipes que não serão utilizados.
       close(pipesBotMotor[i][0]);
-
       // Fecho e duplicação dos descritores de ficheiros.
       close(STDOUT_FILENO);
       dup(pipesBotMotor[i][1]);
       close(pipesBotMotor[i][1]);
 
-      // TODO: change interval and duration
+      char interval[3], duration[3];
+      sprintf(interval, "%d", 30 - 5 * i);
+      sprintf(duration, "%d", (5 + level * 5) - 5 * i);
       // Execução do bot
       execl("bot", "bot", interval, duration, NULL);
 
@@ -92,7 +89,9 @@ void testBotCommandCurses(int level) {
       exit(3);
     }
     // Fecho do terminal do pipe que não será utilizado.
-    close(pipesBotMotor[i][1]);
+    else close(pipesBotMotor[i][1]);
+    wprintw(janelaComandos,"Bot PID: %d\n\n", botPID[i]);
+    wrefresh(janelaComandos);
   }
 
   // Motor (Parent process)
@@ -102,9 +101,8 @@ void testBotCommandCurses(int level) {
   while(1) {
 
     // TODO: Select
-
     // Recebe a informação do bot.
-    nBytes = read(pipesBotMotor[i][0], botInfo, MAXLEN);
+    nBytes = read(pipesBotMotor[0][0], botInfo, MAXLEN);
 
     if (nBytes == 0) {
       break;
@@ -118,15 +116,13 @@ void testBotCommandCurses(int level) {
 
     int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
     wprintw(janelaBot, "Recebi: %d %d %d\n\n", x, y, d);
+    wrefresh(janelaBot);
 
     //TODO: processar info do bot
-    wrefresh(janelaComandos);
-    wrefresh(janelaBot);
   }
 
-  // TODO: fix the fucking window (??? bug, welp)
   for(int i = 0; i < level + 1; i++) {
-    waitpid(botPID[i], &estado, NULL);
+    waitpid(botPID[i], &state, 0);
   }
 
   free(botInfo);          // Libertação da memória alocada para a string botInfo.
@@ -169,7 +165,17 @@ void beginCommandCurses() {
 // Função que trata do comando end.
 void endCommandCurses() {
   unlink(SERVER_FIFO);
-  wprintw(janelaComandos, "\nComando [end] nao implementado.\n");
+  wclear(janelaMapa); // função que limpa o ecrã
+  wrefresh(janelaMapa);  // função que faz atualização o ecrã com as operações realizadas anteriormente
+  delwin(janelaMapa);  // apaga a janela.
+  wclear(janelaComandos); // função que limpa o ecrã
+  wrefresh(janelaComandos); // função que faz atualiza o ecrã com as operações realizadas anteriormente
+  delwin(janelaComandos);  // apaga a janela.
+  wclear(janelaBot); // função que limpa o ecrã
+  wrefresh(janelaBot); // função que faz atualiza o ecrã com as operações realizadas anteriormente
+  delwin(janelaBot);  // apaga a janela.
+  endwin();  // encerra a utilização do ncurses. Muito importante senão o terminal fica inconsistente (idem se sair por outras vias)
+  exit(0);
 }
 
 #pragma endregion
@@ -295,7 +301,7 @@ void trataTeclado() {
       wgetstr(janelaComandos,
               command);  // para receber do teclado uma string na "janelaComandos" para a variavel comando
 
-      if (commandsCurses(command, tecla) == 1) return;
+      commandsCurses(command, tecla);
 
       noecho(); //voltar a desabilitar o que o utilizador escreve
       wrefresh(janelaComandos); //sempre que se escreve numa janela, tem de se fazer refresh
@@ -332,6 +338,8 @@ int main(int argc, char *argv[], char *envp[]) {
   saSIGWINCH.sa_flags = SA_RESTART | SA_SIGINFO;
   sigaction(SIGWINCH, &saSIGWINCH, NULL);
 
+  mkdir("../tmp", 0777);
+
   // Criação do FIFO do Servidor
   int result = mkfifo(SERVER_FIFO, 0777);
   if (result == -1) {
@@ -360,16 +368,4 @@ int main(int argc, char *argv[], char *envp[]) {
   desenhaJanela(janelaBot, 1);  // função exemplo que desenha o janela no ecrã
 
   trataTeclado(); // função que trata o teclado
-
-  wclear(janelaMapa); // função que limpa o ecrã
-  wrefresh(janelaMapa);  // função que faz atualização o ecrã com as operações realizadas anteriormente
-  delwin(janelaMapa);  // apaga a janela.
-  wclear(janelaComandos); // função que limpa o ecrã
-  wrefresh(janelaComandos); // função que faz atualiza o ecrã com as operações realizadas anteriormente
-  delwin(janelaComandos);  // apaga a janela.
-  wclear(janelaBot); // função que limpa o ecrã
-  wrefresh(janelaBot); // função que faz atualiza o ecrã com as operações realizadas anteriormente
-  delwin(janelaBot);  // apaga a janela.
-  endwin();  // encerra a utilização do ncurses. Muito importante senão o terminal fica inconsistente (idem se sair por outras vias)
-
 }

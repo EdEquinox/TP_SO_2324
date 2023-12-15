@@ -39,10 +39,10 @@ int botPID[MAX_BOTS];
 GameInfo gameInfo;
 
 void getEnvVars(int* inscricao, int* nPlayers, int* duracao, int* decremento);
-void testBotCommandCurses(char* interval, char* duration, int tecla);
+void testBotCommandCurses(int level);
 void desenhaJanela(WINDOW *janela, int tipo);
 void trataTeclado();
-int commandsCurses(char* command, int tecla);
+void commandsCurses(char* command, int tecla);
 void usersCommandCurses();
 void kickCommandCurses(char *username);
 void botsCommandCurses();
