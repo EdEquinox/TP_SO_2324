@@ -38,6 +38,7 @@ WINDOW *janelaMapa, *janelaComandos, *janelaBot;
 int botPID[MAX_BOTS];
 GameInfo gameInfo;
 
+int max(int pipes[][2], int nBots);
 void getEnvVars(int* inscricao, int* nPlayers, int* duracao, int* decremento);
 void testBotCommandCurses(int level);
 void desenhaJanela(WINDOW *janela, int tipo);

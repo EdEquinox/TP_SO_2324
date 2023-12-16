@@ -82,6 +82,7 @@ void testBotCommandCurses(int level) {
       sprintf(interval, "%d", 30 - 5 * i);
       sprintf(duration, "%d", (5 + level * 5) - 5 * i);
       // Execução do bot
+      sleep(i);
       execl("bot", "bot", interval, duration, NULL);
 
       // Verificação da correta execução do execl. Se for bem-sucedido, este código será substituído.
@@ -95,37 +96,66 @@ void testBotCommandCurses(int level) {
   }
 
   // Motor (Parent process)
-  char *botInfo = (char *) malloc(MAXLEN);
-  union sigval result;
+
+  // Declarações de variáveis para o select.
+  fd_set fdSet;
+  int result;
+
+  const int fdMAX = max(pipesBotMotor, level + 1);
 
   while(1) {
 
-    // TODO: Select
-    // Recebe a informação do bot.
-    nBytes = read(pipesBotMotor[0][0], botInfo, MAXLEN);
-
-    if (nBytes == 0) {
-      break;
+    FD_ZERO(&fdSet);
+    for(int i = 0; i < level + 1; i++) {
+      FD_SET(pipesBotMotor[i][0], &fdSet);
     }
 
-    botInfo[nBytes + 1] = '\0';
+    result = select(fdMAX + 1, &fdSet, NULL, NULL, NULL);
 
-    char *xChar = strtok(botInfo, " ");
-    char *yChar = strtok(NULL, " ");
-    char *dChar = strtok(NULL, "\n");
+    switch (result) {
+      case -1:
+      {
+        printf("[ERRO]: Ocorreu um erro com o select.\n");
+        exit(1);
+      }
+      default:
+      {
+        for(int i = 0; i < level + 1; i++) {
+          if (FD_ISSET(pipesBotMotor[i][0], &fdSet)) {
+            // Recebe a informação do bot.
 
-    int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
-    wprintw(janelaBot, "Recebi: %d %d %d\n\n", x, y, d);
-    wrefresh(janelaBot);
+            char *botInfo = (char *) malloc(MAXLEN);
 
-    //TODO: processar info do bot
+            nBytes = read(pipesBotMotor[i][0], botInfo, MAXLEN);
+
+            if(nBytes == 0) {
+              break;
+            }
+
+            botInfo[nBytes + 1] = '\0';
+
+            char *xChar = strtok(botInfo, " ");
+            char *yChar = strtok(NULL, " ");
+            char *dChar = strtok(NULL, "\n");
+
+            int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
+            wprintw(janelaBot, "Recebi: %d %d %d\n\n", x, y, d);
+            wrefresh(janelaBot);wrefresh(janelaBot); wrefresh(janelaBot);
+
+            free(botInfo);
+            //TODO: processar info do bot
+          }
+        }
+      }
+    }
+    if(nBytes == 0) {
+      break;
+    }
   }
 
   for(int i = 0; i < level + 1; i++) {
     waitpid(botPID[i], &state, 0);
   }
-
-  free(botInfo);          // Libertação da memória alocada para a string botInfo.
   wrefresh(janelaComandos);  // Atualização da janelaComandos.
   wclear(janelaBot);      // Limpeza da janelaBot.
   wrefresh(janelaBot);    // Atualização da janelaBot.
@@ -181,6 +211,15 @@ void endCommandCurses() {
 #pragma endregion
 
 #pragma region Auxiliar Functions
+
+int max(int pipes[][2], int nBots) {
+  int max = 0;
+  for(int i = 0; i < nBots; i++) {
+    if(pipes[i][0] > max)
+      max = pipes[i][0];
+  }
+  return max;
+}
 
 void getEnvVars(int* inscricao, int* nPlayers, int* duracao, int* decremento) {
   if(getenv("INSCRICAO") == NULL)
@@ -362,7 +401,7 @@ int main(int argc, char *argv[], char *envp[]) {
   janelaMapa = newwin(17, 40, 4,
                       16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
   janelaComandos = newwin(5, 40, 21, 1);
-  janelaBot = newwin(3, 40, 26, 1);
+  janelaBot = newwin(6, 40, 26, 1);
   desenhaJanela(janelaMapa, 2);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaComandos, 1);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaBot, 1);  // função exemplo que desenha o janela no ecrã
