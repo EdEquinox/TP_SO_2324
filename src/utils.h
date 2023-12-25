@@ -20,6 +20,6 @@
 typedef struct {
   int pid;
   int messageID;
-  char* message;
+  char message[MAXLEN];
 } Message;
 

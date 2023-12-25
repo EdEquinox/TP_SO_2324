@@ -43,7 +43,24 @@ void commandsCurses(char *command, int tecla) {
   {
     //TODO: change level
     testBotCommandCurses(1);
-  } else wprintw(janelaComandos, ("[ERRO]: Comando invalido.\n")); // Comando inválido.
+  } else if(!strcmp(commandAux, "comms")) {
+    comms();
+  }
+  else wprintw(janelaComandos, ("[ERRO]: Comando invalido.\n")); // Comando inválido.
+}
+
+void comms() {
+  int fd_SERVER, nBytes;
+  Message message;
+  fd_SERVER = open(SERVER_FIFO, O_RDWR);
+
+  do {
+    nBytes = read(fd_SERVER, &message, sizeof(Message));
+    wprintw(janelaBot, "PID: %d\tMID: %d\tMSG: %s\n", message.pid, message.messageID, message.message);
+    wrefresh(janelaBot);wrefresh(janelaBot);wrefresh(janelaBot);
+  } while(strcmp(message.message, "exit"));
+
+  close(fd_SERVER);
 }
 
 // Função que trata do comando test_bot.

@@ -121,12 +121,31 @@ int commands(char *command, int tecla) {
       wprintw(janelaComandos, "msg: %s\n", msg);
       msgCommand(username, msg);
     }
+  } else if(!strcmp(commandAux, "comms")) {
+    comms();
   } else if (!strcmp(commandAux, "exit"))  // Comando exit
   {
     exitCommand();
     strcpy(command, "exit");
     return 1;
   } else wprintw(janelaComandos, ("[ERRO]: Comando invalido.\n"));
+}
+
+void comms() {
+  Message message;
+  message.pid = getpid();
+  message.messageID = 1;
+
+  int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
+
+  do {
+    wprintw(janelaComandos, "\n Message: "); // utilizada para imprimir.
+    wgetstr(janelaComandos, message.message);
+    wprintw(janelaComandos, "%s", message.message);
+    int nBytes = write(fdServerFIFO, &message, sizeof(Message));
+  } while(strcmp(message.message, "exit"));
+
+  close(fdServerFIFO);
 }
 
 // Comando players
@@ -179,14 +198,14 @@ int main(int argc, char *argv[], char *envp[]) {
   sigaction(SIGWINCH, &saSIGWINCH, NULL);
 
   // TODO add mutex + move this
-  Message message;
+  /*Message message;
   message.pid = getpid();
   message.messageID = 0;
   message.message = playerName;
 
   int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
   int nBytes = write(fdServerFIFO, &message, sizeof(Message));
-  close(fdServerFIFO);
+  close(fdServerFIFO);*/
   //
 
   initscr(); // Obrigatorio e sempre a primeira operação de ncurses

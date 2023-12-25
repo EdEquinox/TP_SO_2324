@@ -4,6 +4,7 @@
 WINDOW *janelaMapa, *janelaComandos;
 char* playerName;
 
+void comms();
 int commands(char* command, int tecla);
 void playersCommand();
 void msgCommand(char *username, char* msg);
