@@ -9,6 +9,7 @@
 #include <error.h>
 #include <errno.h>
 #include <ncurses.h>
+#include <pthread.h>
 
 #define MAXLEN 50
 #define COLS 40

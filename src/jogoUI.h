@@ -1,5 +1,13 @@
 #include "utils.h"
 
+#define NTHREADS 2
+
+typedef struct {
+  int stop;
+  pthread_t tid;
+  void * retval;
+} TData;
+
 // Vars. globais
 WINDOW *janelaMapa, *janelaComandos;
 char* playerName;

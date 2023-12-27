@@ -8,10 +8,7 @@ void commandsCurses(char *command, int tecla) {
   char *arg;
 
   if (commandAux == NULL) // Verificação da correta utilização do programa.
-  {
     return;
-  }
-
   if (!strcmp(commandAux, "users")) // Comando users.
   {
     usersCommandCurses();
@@ -39,39 +36,38 @@ void commandsCurses(char *command, int tecla) {
   } else if (!strcmp(commandAux, "end")) // Comando end.
   {
     endCommandCurses();
-  } else if (!strcmp(commandAux, "test_bot")) // Comando test_bot.
-  {
-    //TODO: change level
-    testBotCommandCurses(1);
-  } else if(!strcmp(commandAux, "comms")) {
-    comms();
   }
   else wprintw(janelaComandos, ("[ERRO]: Comando invalido.\n")); // Comando inválido.
 }
 
-void comms() {
+void *comms(void *arg) {
+  TData* tData = (TData *) arg;
   int fd_SERVER, nBytes;
   Message message;
   fd_SERVER = open(SERVER_FIFO, O_RDWR);
 
-  do {
+  while(!tData->stop) {
     nBytes = read(fd_SERVER, &message, sizeof(Message));
-    wprintw(janelaBot, "PID: %d\tMID: %d\tMSG: %s\n", message.pid, message.messageID, message.message);
-    wrefresh(janelaBot);wrefresh(janelaBot);wrefresh(janelaBot);
-  } while(strcmp(message.message, "exit"));
-
+    if(nBytes == 0)
+      continue;
+    wprintw(janelaOutput, "PID: %d\tMID: %d\tMSG: %s\n", message.pid, message.messageID, message.message);
+    wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput); wrefresh(janelaOutput); wrefresh(janelaOutput); wrefresh(janelaOutput);
+    wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);
+  }
   close(fd_SERVER);
 }
 
 // Função que trata do comando test_bot.
-void testBotCommandCurses(int level) {
+void* testBotCommandCurses(void* arg) {
 
-  //janelaBot = newwin(3, 40, 26, 1);
+  TData* tData = (TData *) arg;
+
+  pthread_mutex_lock(&tData->mutex);
 
   int nBytes, state; // nBytes: número de bytes recebidos do bot
   int pipesBotMotor[MAX_BOTS][2]; // pipeBotMotor: pipe para comunicação entre o bot e o motor
 
-  for(int i = 0; i < level + 1; i++) {
+  for(int i = 0; i < tData->level + 1; i++) {
     // Verificação da correta criação do pipeBotMotor.
     if (pipe(pipesBotMotor[i]) == -1) {
       wprintw(janelaComandos, "[ERRO]: Nao foi possível criar o pipe para comunicacao com o Bot.\n");
@@ -97,7 +93,7 @@ void testBotCommandCurses(int level) {
 
       char interval[3], duration[3];
       sprintf(interval, "%d", 30 - 5 * i);
-      sprintf(duration, "%d", (5 + level * 5) - 5 * i);
+      sprintf(duration, "%d", (5 + tData->level * 5) - 5 * i);
       // Execução do bot
       sleep(i);
       execl("bot", "bot", interval, duration, NULL);
@@ -118,12 +114,12 @@ void testBotCommandCurses(int level) {
   fd_set fdSet;
   int result;
 
-  const int fdMAX = max(pipesBotMotor, level + 1);
+  const int fdMAX = max(pipesBotMotor, tData->level + 1);
 
-  while(1) {
+  while(!tData->stop) {
 
     FD_ZERO(&fdSet);
-    for(int i = 0; i < level + 1; i++) {
+    for(int i = 0; i < tData->level + 1; i++) {
       FD_SET(pipesBotMotor[i][0], &fdSet);
     }
 
@@ -137,7 +133,7 @@ void testBotCommandCurses(int level) {
       }
       default:
       {
-        for(int i = 0; i < level + 1; i++) {
+        for(int i = 0; i < tData->level + 1; i++) {
           if (FD_ISSET(pipesBotMotor[i][0], &fdSet)) {
             // Recebe a informação do bot.
 
@@ -156,8 +152,8 @@ void testBotCommandCurses(int level) {
             char *dChar = strtok(NULL, "\n");
 
             int x = atoi(xChar), y = atoi(yChar), d = atoi(dChar);
-            wprintw(janelaBot, "Recebi: %d %d %d\n\n", x, y, d);
-            wrefresh(janelaBot);wrefresh(janelaBot); wrefresh(janelaBot);
+            wprintw(janelaOutput, "Recebi: %d %d %d\n\n", x, y, d);
+            wrefresh(janelaOutput);wrefresh(janelaOutput); wrefresh(janelaOutput);
 
             free(botInfo);
             //TODO: processar info do bot
@@ -165,17 +161,16 @@ void testBotCommandCurses(int level) {
         }
       }
     }
-    if(nBytes == 0) {
-      break;
-    }
   }
 
-  for(int i = 0; i < level + 1; i++) {
+  for(int i = 0; i < tData->level + 1; i++) {
     waitpid(botPID[i], &state, 0);
   }
   wrefresh(janelaComandos);  // Atualização da janelaComandos.
-  wclear(janelaBot);      // Limpeza da janelaBot.
-  wrefresh(janelaBot);    // Atualização da janelaBot.
+  wclear(janelaOutput);      // Limpeza da janelaOutput.
+  wrefresh(janelaOutput);    // Atualização da janelaOutput.
+
+  pthread_mutex_unlock(&tData->mutex);
 }
 
 // Função que trata do comando users.
@@ -218,9 +213,9 @@ void endCommandCurses() {
   wclear(janelaComandos); // função que limpa o ecrã
   wrefresh(janelaComandos); // função que faz atualiza o ecrã com as operações realizadas anteriormente
   delwin(janelaComandos);  // apaga a janela.
-  wclear(janelaBot); // função que limpa o ecrã
-  wrefresh(janelaBot); // função que faz atualiza o ecrã com as operações realizadas anteriormente
-  delwin(janelaBot);  // apaga a janela.
+  wclear(janelaOutput); // função que limpa o ecrã
+  wrefresh(janelaOutput); // função que faz atualiza o ecrã com as operações realizadas anteriormente
+  delwin(janelaOutput);  // apaga a janela.
   endwin();  // encerra a utilização do ncurses. Muito importante senão o terminal fica inconsistente (idem se sair por outras vias)
   exit(0);
 }
@@ -289,11 +284,11 @@ void handler_saSIGWINCH(int sigNum, siginfo_t *info, void *old) {
 
   desenhaJanela(janelaMapa, 2);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaComandos, 3);  // função exemplo que desenha o janela no ecrã
-  desenhaJanela(janelaBot, 1);  // função exemplo que desenha o janela no ecrã
+  desenhaJanela(janelaOutput, 1);  // função exemplo que desenha o janela no ecrã
 
   wrefresh(janelaComandos);
   wrefresh(janelaMapa);
-  wrefresh(janelaBot);
+  wrefresh(janelaOutput);
   refresh();
 }
 
@@ -348,7 +343,6 @@ void trataTeclado() {
 
   while (tecla != 113) // trata as tecla até introduzirem a letra q. O código asci de q é 113
   {
-
     if (tecla == ' ') // trata a tecla espaço
     {
       curs_set(1); // faz com que o cursor seja visivel
@@ -406,7 +400,6 @@ int main(int argc, char *argv[], char *envp[]) {
   initscr(); // Obrigatorio e sempre a primeira operação de ncurses
   raw();  // desativa o buffer de input, cada tecla é lida imediatamente
   noecho();  // desliga o echo no ecrã, para voltar ativar devem utilizar a função echo();
-  keypad(stdscr, TRUE);  // habilita as teclas  especiais, exemplo -> <-
 
   mvprintw(1, 10,
            "____________________________________________________");  // mensagem fora da janela, na linha 1, coluna 10 do ecrã
@@ -415,13 +408,50 @@ int main(int argc, char *argv[], char *envp[]) {
   mvprintw(3, 10,
            "____________________________________________________"); // mensagem fora da janela, na linha 3, coluna 10 do ecrã
 
-  janelaMapa = newwin(17, 40, 4,
-                      16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
+  janelaMapa = newwin(17, 40, 4, 16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
   janelaComandos = newwin(5, 40, 21, 1);
-  janelaBot = newwin(6, 40, 26, 1);
+  janelaOutput = newwin(10, 40, 26, 1);
   desenhaJanela(janelaMapa, 2);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaComandos, 1);  // função exemplo que desenha o janela no ecrã
-  desenhaJanela(janelaBot, 1);  // função exemplo que desenha o janela no ecrã
+  desenhaJanela(janelaOutput, 1);  // função exemplo que desenha o janela no ecrã
 
-  trataTeclado(); // função que trata o teclado
+  int level = 1;
+
+  // Threads
+  TData threads[NTHREADS];
+  threads[0].stop = 0; // comms jogoUI
+
+  result = pthread_create(&threads[0].tid, NULL, comms, (void*) &threads[0]);
+
+  if(result != 0) {
+    printf("Erro a criar threads");
+    exit(-1);
+  }
+
+  threads[1].stop = 1; // comms bots
+  result = pthread_mutex_init(&threads[1].mutex, NULL);
+  pthread_mutex_lock(&threads[1].mutex);
+
+  if(result != 0) {
+    printf("Erro a criar mutex");
+    exit(-1);
+  }
+
+  result = pthread_create(&threads[1].tid, NULL, testBotCommandCurses, (void*) &threads[1]);
+
+  if(result != 0) {
+    printf("Erro a criar threads");
+    exit(-1);
+  }
+
+  trataTeclado();
+
+  for(int i = 0; i < NTHREADS; ++i)
+    threads[i].stop = 1;
+
+  for(int i = 0; i < NTHREADS; i++)
+    pthread_kill(threads[i].tid, SIGUSR1);
+
+  for(int i = 0; i < NTHREADS; ++i)
+    pthread_join(threads[i].tid, &threads[i].retval);
 }

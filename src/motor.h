@@ -6,6 +6,7 @@
 #define MAX_ROCKS 50
 #define MAX_BLOCKS 5
 #define MAX_LEVELS 3
+#define NTHREADS 2
 
 typedef struct {
   int pid;
@@ -33,15 +34,23 @@ typedef struct {
   Rock rocks[MAX_ROCKS];
 } GameInfo;
 
+typedef struct {
+  pthread_mutex_t mutex;
+  pthread_t tid;
+  int stop;
+  int level;
+  void * retval;
+} TData;
+
 // Vars. globais
-WINDOW *janelaMapa, *janelaComandos, *janelaBot;
+WINDOW *janelaMapa, *janelaComandos, *janelaOutput;
 int botPID[MAX_BOTS];
 GameInfo gameInfo;
 
-void comms();
+void* comms();
 int max(int pipes[][2], int nBots);
 void getEnvVars(int* inscricao, int* nPlayers, int* duracao, int* decremento);
-void testBotCommandCurses(int level);
+void* testBotCommandCurses(void* arg);
 void desenhaJanela(WINDOW *janela, int tipo);
 void trataTeclado();
 void commandsCurses(char* command, int tecla);
