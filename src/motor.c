@@ -410,7 +410,7 @@ int main(int argc, char *argv[], char *envp[]) {
 
   janelaMapa = newwin(17, 40, 4, 16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
   janelaComandos = newwin(5, 40, 21, 1);
-  janelaOutput = newwin(10, 40, 26, 1);
+  janelaOutput = newwin(9, 40, 26, 1);
   desenhaJanela(janelaMapa, 2);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaComandos, 1);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaOutput, 1);  // função exemplo que desenha o janela no ecrã
@@ -418,7 +418,7 @@ int main(int argc, char *argv[], char *envp[]) {
   int level = 1;
 
   // Threads
-  TData threads[NTHREADS];
+  TData threads[N_THREADS];
   threads[0].stop = 0; // comms jogoUI
 
   result = pthread_create(&threads[0].tid, NULL, comms, (void*) &threads[0]);
@@ -446,12 +446,12 @@ int main(int argc, char *argv[], char *envp[]) {
 
   trataTeclado();
 
-  for(int i = 0; i < NTHREADS; ++i)
+  for(int i = 0; i < N_THREADS; ++i)
     threads[i].stop = 1;
 
-  for(int i = 0; i < NTHREADS; i++)
+  for(int i = 0; i < N_THREADS; i++)
     pthread_kill(threads[i].tid, SIGUSR1);
 
-  for(int i = 0; i < NTHREADS; ++i)
+  for(int i = 0; i < N_THREADS; ++i)
     pthread_join(threads[i].tid, &threads[i].retval);
 }

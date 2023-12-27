@@ -37,6 +37,8 @@ void desenhaJanela(WINDOW *janela, int tipo) {
   if (tipo == 1) {
     wprintw(janela, "Bem-vindo %s!", playerName); // escreve a palavra UP na janelaTopo
     scrollok(janela, TRUE); // liga o scroll na "janela".
+  } else if(tipo == 2) {
+    scrollok(janela, TRUE); // liga o scroll na "janela".
   } else {
     keypad(janela, TRUE); // para ligar as teclas de direção (aplicar à janela)
     wclear(janela);// limpa a janela
@@ -121,8 +123,6 @@ int commands(char *command, int tecla) {
       wprintw(janelaComandos, "msg: %s\n", msg);
       msgCommand(username, msg);
     }
-  } else if(!strcmp(commandAux, "comms")) {
-    comms();
   } else if (!strcmp(commandAux, "exit"))  // Comando exit
   {
     exitCommand();
@@ -131,21 +131,20 @@ int commands(char *command, int tecla) {
   } else wprintw(janelaComandos, ("[ERRO]: Comando invalido.\n"));
 }
 
-void comms() {
+void* comms(void* arg) {
+
+  TData* tData = (TData*) arg;
+
   Message message;
-  message.pid = getpid();
-  message.messageID = 1;
-
-  int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
-
-  do {
-    wprintw(janelaComandos, "\n Message: "); // utilizada para imprimir.
-    wgetstr(janelaComandos, message.message);
-    wprintw(janelaComandos, "%s", message.message);
-    int nBytes = write(fdServerFIFO, &message, sizeof(Message));
-  } while(strcmp(message.message, "exit"));
-
-  close(fdServerFIFO);
+  char clientFIFO_Name[22];
+  sprintf(clientFIFO_Name, CLIENT_FIFO, getpid());
+  int fdClientFIFO = open(clientFIFO_Name, O_RDONLY);
+  while(!tData->stop) {
+    int nBytes = read(fdClientFIFO, &message, sizeof(Message));
+    wprintw(janelaOutput, "PID: %d\tMID: %d\tMSG: %s\n", message.pid, message.messageID, message.message);
+  }
+  close(fdClientFIFO);
+  return NULL;
 }
 
 // Comando players
@@ -164,7 +163,13 @@ void exitCommand() {
   char clientFIFO_Name[22];
   sprintf(clientFIFO_Name, CLIENT_FIFO, getpid());
   unlink(clientFIFO_Name);
-  wprintw(janelaComandos, "\nComando [exit] nao implementado.\n");
+  wclear(janelaMapa); // função que limpa o ecrã
+  wrefresh(janelaMapa);  // função que faz atualização o ecrã com as operações realizadas anteriormente
+  delwin(janelaMapa);  // apaga a janela.
+  wclear(janelaComandos); // função que limpa o ecrã
+  wrefresh(janelaComandos); // função que faz atualiza o ecrã com as operações realizadas anteriormente
+  delwin(janelaComandos);  // apaga a janela.
+  endwin(); // Obrigatorio e sempre a ultima operação de ncurses
 }
 
 #pragma endregion
@@ -197,16 +202,14 @@ int main(int argc, char *argv[], char *envp[]) {
   saSIGWINCH.sa_flags = SA_RESTART | SA_SIGINFO;
   sigaction(SIGWINCH, &saSIGWINCH, NULL);
 
-  // TODO add mutex + move this
-  /*Message message;
+  Message message;
   message.pid = getpid();
   message.messageID = 0;
-  message.message = playerName;
+  strcpy(message.message, playerName);
 
   int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
   int nBytes = write(fdServerFIFO, &message, sizeof(Message));
-  close(fdServerFIFO);*/
-  //
+  close(fdServerFIFO);
 
   initscr(); // Obrigatorio e sempre a primeira operação de ncurses
   raw();  // desativa o buffer de input, cada tecla é lida imediatamente
@@ -224,20 +227,27 @@ int main(int argc, char *argv[], char *envp[]) {
   mvprintw(5, 10,
            "____________________________________________________"); // mensagem fora da janela, na linha 5, coluna 10 do ecrã
 
-  janelaMapa = newwin(17, 40, 6,
-                      16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
+  janelaMapa = newwin(17, 40, 6, 16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
   janelaComandos = newwin(5, 40, 25, 1);
-
-  desenhaJanela(janelaMapa, 2);  // função exemplo que desenha o janela no ecrã
+  janelaOutput = newwin(9, 40, 30, 1);
+  desenhaJanela(janelaMapa, 3);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaComandos, 1);  // função exemplo que desenha o janela no ecrã
+  desenhaJanela(janelaOutput, 2);  // função exemplo que desenha o janela no ecrã
 
-  trataTeclado(); // função que trata o teclado
+  // Threads
+  TData thread;
+  thread.stop = 0; // comms server
 
-  wclear(janelaMapa); // função que limpa o ecrã
-  wrefresh(janelaMapa);  // função que faz atualização o ecrã com as operações realizadas anteriormente
-  delwin(janelaMapa);  // apaga a janela.
-  wclear(janelaComandos); // função que limpa o ecrã
-  wrefresh(janelaComandos); // função que faz atualiza o ecrã com as operações realizadas anteriormente
-  delwin(janelaComandos);  // apaga a janela.
-  endwin(); // Obrigatorio e sempre a ultima operação de ncurses
+  result = pthread_create(&thread.tid, NULL, comms, (void*) &thread);
+
+  if(result != 0) {
+    printf("Erro a criar threads");
+    exit(-1);
+  }
+
+  trataTeclado();
+
+  thread.stop = 1;
+  pthread_kill(thread.tid, SIGUSR1);
+  pthread_join(thread.tid, &thread.retval);
 }

@@ -1,12 +1,11 @@
 #include "utils.h"
 
-#define NBOTS 1
 #define MAX_PLAYERS 5
 #define MAX_BOTS 10
 #define MAX_ROCKS 50
 #define MAX_BLOCKS 5
 #define MAX_LEVELS 3
-#define NTHREADS 2
+#define N_THREADS 2
 
 typedef struct {
   int pid;
