@@ -149,12 +149,26 @@ void* comms(void* arg) {
 
 // Comando players
 void playersCommand() {
-  wprintw(janelaComandos, "\nComando [players] nao implementado.\n");
+  Message message;
+  message.pid = getpid();
+  message.messageID = CLIENT_PLAYERS;
+  strcpy(message.message, "players");
+
+  int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
+  int nBytes = write(fdServerFIFO, &message, sizeof(Message));
+  close(fdServerFIFO);
 }
 
 // Comando msg
 void msgCommand(char *username, char *msg) {
-  wprintw(janelaComandos, "\nComando [msg] nao implementado.\n");
+  Message message;
+  message.pid = getpid();
+  message.messageID = CLIENT_MSG;
+  sprintf(message.message, "%s %s", username, msg);
+
+  int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
+  int nBytes = write(fdServerFIFO, &message, sizeof(Message));
+  close(fdServerFIFO);
 }
 
 // Comando exit
@@ -204,7 +218,7 @@ int main(int argc, char *argv[], char *envp[]) {
 
   Message message;
   message.pid = getpid();
-  message.messageID = 0;
+  message.messageID = CLIENT_CONNECT;
   strcpy(message.message, playerName);
 
   int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
