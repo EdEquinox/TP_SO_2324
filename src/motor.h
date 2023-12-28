@@ -1,6 +1,5 @@
 #include "utils.h"
 
-#define MAX_PLAYERS 5
 #define MAX_BOTS 10
 #define MAX_ROCKS 50
 #define MAX_BLOCKS 5
@@ -9,6 +8,7 @@
 
 typedef struct {
   int pid;
+  char username[MAXLEN];
   int x;
   int y;
 } Player;
@@ -29,8 +29,11 @@ typedef struct {
   int level;
   char map[ROWS][COLS];
   Player players[MAX_PLAYERS];
+  int nPlayers;
   Block blocks[MAX_BLOCKS];
+  int nBlocks;
   Rock rocks[MAX_ROCKS];
+  int nRocks;
 } GameInfo;
 
 typedef struct {
@@ -46,6 +49,7 @@ WINDOW *janelaMapa, *janelaComandos, *janelaOutput;
 int botPID[MAX_BOTS];
 GameInfo gameInfo;
 
+void processMessage(Message message);
 void* comms();
 int max(int pipes[][2], int nBots);
 void getEnvVars(int* inscricao, int* nPlayers, int* duracao, int* decremento);

@@ -51,10 +51,85 @@ void *comms(void *arg) {
     if(nBytes == 0)
       continue;
     wprintw(janelaOutput, "PID: %d\tMID: %d\tMSG: %s\n", message.pid, message.messageID, message.message);
-    wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput); wrefresh(janelaOutput); wrefresh(janelaOutput); wrefresh(janelaOutput);
-    wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);
+    wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);
+    processMessage(message);
   }
   close(fd_SERVER);
+}
+
+void processMessage(Message message) {
+  switch (message.messageID) {
+    case CLIENT_CONNECT: {
+      gameInfo.players[gameInfo.nPlayers].pid = message.pid;
+      strcpy(gameInfo.players[gameInfo.nPlayers].username, message.message);
+      gameInfo.nPlayers++;
+      break;
+    }
+    case CLIENT_MOVE: {
+      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+        if(gameInfo.players[i].pid == message.pid) {
+          char* x = strtok(message.message, " ");
+          char* y = strtok(NULL, " ");
+          gameInfo.players[i].x = atoi(x);
+          gameInfo.players[i].y = atoi(y);
+        }
+      }
+      break;
+    }
+    case CLIENT_PLAYERS: {
+      char* playersList = (char*) malloc(sizeof(char) * ((MAXLEN + 1) * MAX_PLAYERS));
+      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+        strcat(playersList, gameInfo.players[i].username);
+        strcat(playersList, " ");
+      }
+      playersList[strlen(playersList)] = '\0';
+
+      Message reply;
+      reply.pid = getpid();
+      reply.messageID = SERVER_PLAYERS;
+      strcpy(reply.message, playersList);
+
+      char clientFIFO_Name[22];
+      sprintf(clientFIFO_Name, CLIENT_FIFO, message.pid);
+      int fdClientFIFO = open(clientFIFO_Name, O_WRONLY);
+      write(fdClientFIFO, &reply, sizeof(Message));
+      close(fdClientFIFO);
+      free(playersList);
+      break;
+    }
+    case CLIENT_MSG: {
+      strtok(message.message, " ");
+      char* username = strtok(NULL, " ");
+      char* msg = strtok(NULL, " ");
+
+      Message fwd;
+      fwd.pid = getpid();
+      fwd.messageID = SERVER_MSG;
+      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+        if(gameInfo.players[i].pid == message.pid)
+          strcpy(fwd.message, gameInfo.players[i].username);
+      }
+
+      strcat(fwd.message, ": ");
+      strcat(fwd.message, msg);
+
+      int clientPID;
+      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+        if(!strcmp(gameInfo.players[i].username, username))
+          clientPID = gameInfo.players[i].pid;
+      }
+
+      char clientFIFO_Name[22];
+      sprintf(clientFIFO_Name, CLIENT_FIFO, clientPID);
+      int fdClientFIFO = open(clientFIFO_Name, O_WRONLY);
+      write(fdClientFIFO, &fwd, sizeof(Message));
+      close(fdClientFIFO);
+      break;
+    }
+    case CLIENT_DISCONNECT: {
+
+    }
+  }
 }
 
 // Função que trata do comando test_bot.
@@ -376,8 +451,9 @@ int main(int argc, char *argv[], char *envp[]) {
   }
 
   int inscricao = 0, nPlayers = 0, duracao = 0, decremento = 0;
-
   getEnvVars(&inscricao, &nPlayers, &duracao, &decremento);
+
+  gameInfo.nPlayers = 0; gameInfo.nBlocks = 0; gameInfo.nRocks = 0;
 
   // Ler o mapa do ficheiro map1.txt
   readMap(1);
