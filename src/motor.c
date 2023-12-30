@@ -98,10 +98,10 @@ void processMessage(Message message) {
       break;
     }
     case CLIENT_MSG: {
-      strtok(message.message, " ");
-      char* username = strtok(NULL, " ");
+      char* username = strtok(message.message, " ");
       char* msg = strtok(NULL, " ");
-
+      wprintw(janelaOutput, "username: %s\t", username);
+      wprintw(janelaOutput, "msg: %s\n", msg);
       Message fwd;
       fwd.pid = getpid();
       fwd.messageID = SERVER_MSG;
@@ -112,6 +112,8 @@ void processMessage(Message message) {
 
       strcat(fwd.message, ": ");
       strcat(fwd.message, msg);
+
+      wprintw(janelaOutput, "msg: %s\n", fwd.message);
 
       int clientPID;
       for(int i = 0; i <= gameInfo.nPlayers; i++) {
@@ -127,7 +129,12 @@ void processMessage(Message message) {
       break;
     }
     case CLIENT_DISCONNECT: {
-
+      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+        if(gameInfo.players[i].pid == message.pid) {
+          // TODO put i in last
+          gameInfo.nPlayers--;
+        }
+      }
     }
   }
 }
@@ -281,6 +288,20 @@ void beginCommandCurses() {
 
 // Função que trata do comando end.
 void endCommandCurses() {
+
+  Message message;
+  reply.pid = getpid();
+  reply.messageID = SERVER_SHUTDOWN;
+  strcpy(reply.message, "Server Shutdown");
+
+  for(int i = 0; i <= gameInfo.nPlayers; i++) {
+    char clientFIFO_Name[22];
+    sprintf(clientFIFO_Name, CLIENT_FIFO, gameInfo.players[i].pid);
+    int fdClientFIFO = open(clientFIFO_Name, O_WRONLY);
+    write(fdClientFIFO, &message, sizeof(Message));
+    close(fdClientFIFO);
+  }
+
   unlink(SERVER_FIFO);
   wclear(janelaMapa); // função que limpa o ecrã
   wrefresh(janelaMapa);  // função que faz atualização o ecrã com as operações realizadas anteriormente

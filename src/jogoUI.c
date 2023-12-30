@@ -119,8 +119,6 @@ int commands(char *command, int tecla) {
     if (username == NULL || msg == NULL) // Verificação da correta utilização do comando.
       wprintw(janelaComandos, "[ERRO] Syntax: msg <username> <message>\n");
     else {
-      wprintw(janelaComandos, "username: %s\n", username);
-      wprintw(janelaComandos, "msg: %s\n", msg);
       msgCommand(username, msg);
     }
   } else if (!strcmp(commandAux, "exit"))  // Comando exit
@@ -141,10 +139,46 @@ void* comms(void* arg) {
   int fdClientFIFO = open(clientFIFO_Name, O_RDONLY);
   while(!tData->stop) {
     int nBytes = read(fdClientFIFO, &message, sizeof(Message));
-    wprintw(janelaOutput, "PID: %d\tMID: %d\tMSG: %s\n", message.pid, message.messageID, message.message);
+    if(nBytes == 0)
+      continue;
+    processMessage(message);
+    wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);
   }
   close(fdClientFIFO);
   return NULL;
+}
+
+void processMessage(Message message) {
+  switch (message.messageID) {
+    case SERVER_SHUTDOWN: {
+
+      break;
+    }
+    case SERVER_KICK: {
+      break;
+    }
+    case SERVER_BMOV: {
+      break;
+    }
+    case SERVER_RBM: {
+      break;
+    }
+    case SERVER_BEGIN_GAME: {
+      break;
+    }
+    case SERVER_END_GAME: {
+      break;
+    }
+    case SERVER_MOVE: {
+      break;
+    }
+    case SERVER_PLAYERS: {
+      break;
+    }
+    case SERVER_MSG: {
+      break;
+    }
+  }
 }
 
 // Comando players
@@ -241,9 +275,12 @@ int main(int argc, char *argv[], char *envp[]) {
   mvprintw(5, 10,
            "____________________________________________________"); // mensagem fora da janela, na linha 5, coluna 10 do ecrã
 
+
+  int height, width;
+  getmaxyx(stdscr, height, width);
   janelaMapa = newwin(17, 40, 6, 16);  // Criar janela para a matriz de jogo, tendo os parametro numero de linhas,numero de colunas, posição onde começa a janela  e posição onde termina
   janelaComandos = newwin(5, 40, 25, 1);
-  janelaOutput = newwin(9, 40, 30, 1);
+  janelaOutput = newwin(9, width, 26, 1);
   desenhaJanela(janelaMapa, 3);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaComandos, 1);  // função exemplo que desenha o janela no ecrã
   desenhaJanela(janelaOutput, 2);  // função exemplo que desenha o janela no ecrã
