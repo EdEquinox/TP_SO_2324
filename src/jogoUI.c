@@ -49,14 +49,16 @@ void desenhaJanela(WINDOW *janela, int tipo) {
   wrefresh(janela); // necessário para atualizar a janela
 }
 
-void trataTeclado() {
+void* trataTeclado(void* arg) {
+  TData* tData = (TData*) arg;
+
   keypad(janelaMapa, TRUE);       // para ligar as teclas de direção (aplicar à janelaTopo)
   wmove(janelaMapa, 1, 1);        // posiciona o cursor,visualmente, na posicao 1,1 da janelaTopo
   int tecla = wgetch(
     janelaMapa); // MUITO importante: o input é feito sobre a janela em questão, neste caso na janelaTopo
   char *command = (char *) malloc(sizeof(char) * MAXLEN);
 
-  while (tecla != 113) // trata as tecla até introduzirem a letra q. O código asci de q é 113
+  while (tecla != 113 && !tData->stop) // trata as tecla até introduzirem a letra q. O código asci de q é 113
   {
     if (tecla == KEY_UP) // quando o utilizador introduz a seta para cima
     {
@@ -141,42 +143,68 @@ void* comms(void* arg) {
     int nBytes = read(fdClientFIFO, &message, sizeof(Message));
     if(nBytes == 0)
       continue;
-    processMessage(message);
-    wrefresh(janelaOutput);wrefresh(janelaOutput);wrefresh(janelaOutput);
+    int end = processMessage(message);
+    if(end == 1)
+      tData->stop = 1;
   }
   close(fdClientFIFO);
   return NULL;
 }
 
-void processMessage(Message message) {
+int processMessage(Message message) {
   switch (message.messageID) {
     case SERVER_SHUTDOWN: {
-
-      break;
+      wprintw(janelaOutput, "O servidor foi encerrado.\n");
+      wrefresh(janelaOutput);
+      return 1;
+    }
+    case SERVER_DISCONNECT {
+      wprintw(janelaOutput, "Voce foi banido pelo servidor.\n");
+      wrefresh(janelaOutput);
+      return 1;
     }
     case SERVER_KICK: {
-      break;
+      wprintw(janelaOutput, "%s foi banido.\n", message.message);
+      wrefresh(janelaOutput);
+      return 0;
     }
     case SERVER_BMOV: {
-      break;
+      char* x = strtok(message.message, " ");
+      char* y = strtok(NULL, " ");
+      wprintw(janelaOutput, "Bloqueio Movel em %d %d adicionado", atoi(x), atoi(y));
+      wrefresh(janelaOutput);
+      return 0;
     }
     case SERVER_RBM: {
-      break;
+      char* x = strtok(message.message, " ");
+      char* y = strtok(NULL, " ");
+      wprintw(janelaOutput, "Bloqueio Movel em %d %d removido", atoi(x), atoi(y));
+      wrefresh(janelaOutput);
+      return 0;
     }
     case SERVER_BEGIN_GAME: {
-      break;
+      wprintw(janelaOutput, "O jogo começou");
+      wrefresh(janelaOutput);
+      return 0;
     }
     case SERVER_END_GAME: {
-      break;
+      wprintw(janelaOutput, "O jogo terminou");
+      wrefresh(janelaOutput);
+      return 0;
     }
     case SERVER_MOVE: {
-      break;
+      // TODO
+      return 0;
     }
     case SERVER_PLAYERS: {
-      break;
+      wprintw(janelaOutput, "players: %s", message.message);
+      wrefresh(janelaOutput);
+      return 0;
     }
     case SERVER_MSG: {
-      break;
+      wprintw(janelaOutput, "%s", message.message);
+      wrefresh(janelaOutput);
+      return 0;
     }
   }
 }
@@ -207,10 +235,21 @@ void msgCommand(char *username, char *msg) {
 
 // Comando exit
 void exitCommand() {
+  Message message;
+  message.pid = getpid();
+  message.messageID = CLIENT_DISCONNECT;
+
+  int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
+  int nBytes = write(fdServerFIFO, &message, sizeof(Message));
+  close(fdServerFIFO);
+}
+
+void closeClient() {
   // TODO Change this
   char clientFIFO_Name[22];
   sprintf(clientFIFO_Name, CLIENT_FIFO, getpid());
   unlink(clientFIFO_Name);
+
   wclear(janelaMapa); // função que limpa o ecrã
   wrefresh(janelaMapa);  // função que faz atualização o ecrã com as operações realizadas anteriormente
   delwin(janelaMapa);  // apaga a janela.
@@ -286,19 +325,32 @@ int main(int argc, char *argv[], char *envp[]) {
   desenhaJanela(janelaOutput, 2);  // função exemplo que desenha o janela no ecrã
 
   // Threads
-  TData thread;
-  thread.stop = 0; // comms server
+  TData threads[N_THREADS];
 
-  result = pthread_create(&thread.tid, NULL, comms, (void*) &thread);
+  threads[0].stop = 0; // comms server
+  result = pthread_create(&thread.tid, NULL, comms, (void*) &threads[0]);
 
   if(result != 0) {
     printf("Erro a criar threads");
     exit(-1);
   }
 
-  trataTeclado();
+  threads[1].stop = 0; // commands
+  result = pthread_create(&thread.tid, NULL, trataTeclado, (void*) &threads[1]);
 
-  thread.stop = 1;
-  pthread_kill(thread.tid, SIGUSR1);
-  pthread_join(thread.tid, &thread.retval);
+  if(result != 0) {
+    printf("Erro a criar threads");
+    exit(-1);
+  }
+
+  while(!threads[0].stop && !threads[1].stop) {}
+
+  for(int i = 0; i < N_THREADS; i++) {
+    if(threads[i].stop == 0) {
+      threads[i].stop = 1;
+      pthread_kill(threads[i].tid, SIGUSR1);
+      pthread_join(threads[i].tid, &thread[i].retval);
+    }
+  }
+  closeClient();
 }

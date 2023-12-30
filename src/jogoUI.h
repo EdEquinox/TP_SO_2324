@@ -1,5 +1,7 @@
 #include "utils.h"
 
+#define N_THREADS 2
+
 typedef struct {
   int stop;
   pthread_t tid;
@@ -10,10 +12,11 @@ typedef struct {
 WINDOW *janelaMapa, *janelaComandos, *janelaOutput;
 char* playerName;
 
+void closeClient();
 void* comms(void* arg);
 int commands(char* command, int tecla);
 void playersCommand();
 void msgCommand(char *username, char* msg);
 void exitCommand();
 void desenhaJanela(WINDOW *janela, int tipo);
-void trataTeclado();
+void* trataTeclado(void* arg);
