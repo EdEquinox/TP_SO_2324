@@ -84,7 +84,10 @@ void* trataTeclado(void* arg) {
       echo();                        // habilita o echo, para que o que o utilizador escreve apareça no ecrã
       wprintw(janelaComandos, "\n #> "); // utilizada para imprimir.
       wgetstr(janelaComandos, command);  // para receber do teclado uma string na "janelaBaixo" para a variavel comando
-      if (commands(command, tecla) == 1) return;
+      if (commands(command, tecla) == 1) {
+        tData->stop = 1;
+        return NULL;
+      }
 
       noecho(); //voltar a desabilitar o que o utilizador escreve
       wrefresh(janelaComandos); //sempre que se escreve numa janela, tem de se fazer refresh
@@ -96,6 +99,7 @@ void* trataTeclado(void* arg) {
       janelaMapa); //espera que o utilizador introduza um inteiro. Importante e como já referido anteriormente introduzir a janela onde queremos receber o input
   }
   exitCommand();
+  tData->stop = 1;
 }
 
 # pragma endregion
@@ -126,7 +130,6 @@ int commands(char *command, int tecla) {
   } else if (!strcmp(commandAux, "exit"))  // Comando exit
   {
     exitCommand();
-    strcpy(command, "exit");
     return 1;
   } else wprintw(janelaComandos, ("[ERRO]: Comando invalido.\n"));
 }
@@ -158,7 +161,7 @@ int processMessage(Message message) {
       wrefresh(janelaOutput);
       return 1;
     }
-    case SERVER_DISCONNECT {
+    case SERVER_DISCONNECT: {
       wprintw(janelaOutput, "Voce foi banido pelo servidor.\n");
       wrefresh(janelaOutput);
       return 1;
@@ -171,24 +174,24 @@ int processMessage(Message message) {
     case SERVER_BMOV: {
       char* x = strtok(message.message, " ");
       char* y = strtok(NULL, " ");
-      wprintw(janelaOutput, "Bloqueio Movel em %d %d adicionado", atoi(x), atoi(y));
+      wprintw(janelaOutput, "Bloqueio Movel em %d %d adicionado\n", atoi(x), atoi(y));
       wrefresh(janelaOutput);
       return 0;
     }
     case SERVER_RBM: {
       char* x = strtok(message.message, " ");
       char* y = strtok(NULL, " ");
-      wprintw(janelaOutput, "Bloqueio Movel em %d %d removido", atoi(x), atoi(y));
+      wprintw(janelaOutput, "Bloqueio Movel em %d %d removido\n", atoi(x), atoi(y));
       wrefresh(janelaOutput);
       return 0;
     }
     case SERVER_BEGIN_GAME: {
-      wprintw(janelaOutput, "O jogo começou");
+      wprintw(janelaOutput, "O jogo começou\n");
       wrefresh(janelaOutput);
       return 0;
     }
     case SERVER_END_GAME: {
-      wprintw(janelaOutput, "O jogo terminou");
+      wprintw(janelaOutput, "O jogo terminou\n");
       wrefresh(janelaOutput);
       return 0;
     }
@@ -197,13 +200,13 @@ int processMessage(Message message) {
       return 0;
     }
     case SERVER_PLAYERS: {
-      wprintw(janelaOutput, "players: %s", message.message);
+      wprintw(janelaOutput, "players: %s\n", message.message);
       wrefresh(janelaOutput);
       return 0;
     }
     case SERVER_MSG: {
-      wprintw(janelaOutput, "%s", message.message);
-      wrefresh(janelaOutput);
+      wprintw(janelaOutput, "%s\n", message.message);
+      wrefresh(janelaOutput); wrefresh(janelaOutput); wrefresh(janelaOutput);
       return 0;
     }
   }
@@ -238,6 +241,8 @@ void exitCommand() {
   Message message;
   message.pid = getpid();
   message.messageID = CLIENT_DISCONNECT;
+  strcpy(message.message, "player disconnected");
+
 
   int fdServerFIFO = open(SERVER_FIFO, O_WRONLY);
   int nBytes = write(fdServerFIFO, &message, sizeof(Message));
@@ -245,7 +250,6 @@ void exitCommand() {
 }
 
 void closeClient() {
-  // TODO Change this
   char clientFIFO_Name[22];
   sprintf(clientFIFO_Name, CLIENT_FIFO, getpid());
   unlink(clientFIFO_Name);
@@ -328,7 +332,7 @@ int main(int argc, char *argv[], char *envp[]) {
   TData threads[N_THREADS];
 
   threads[0].stop = 0; // comms server
-  result = pthread_create(&thread.tid, NULL, comms, (void*) &threads[0]);
+  result = pthread_create(&threads[0].tid, NULL, comms, (void*) &threads[0]);
 
   if(result != 0) {
     printf("Erro a criar threads");
@@ -336,7 +340,7 @@ int main(int argc, char *argv[], char *envp[]) {
   }
 
   threads[1].stop = 0; // commands
-  result = pthread_create(&thread.tid, NULL, trataTeclado, (void*) &threads[1]);
+  result = pthread_create(&threads[1].tid, NULL, trataTeclado, (void*) &threads[1]);
 
   if(result != 0) {
     printf("Erro a criar threads");
@@ -349,7 +353,7 @@ int main(int argc, char *argv[], char *envp[]) {
     if(threads[i].stop == 0) {
       threads[i].stop = 1;
       pthread_kill(threads[i].tid, SIGUSR1);
-      pthread_join(threads[i].tid, &thread[i].retval);
+      pthread_join(threads[i].tid, &threads[i].retval);
     }
   }
   closeClient();

@@ -20,3 +20,4 @@ void msgCommand(char *username, char* msg);
 void exitCommand();
 void desenhaJanela(WINDOW *janela, int tipo);
 void* trataTeclado(void* arg);
+int processMessage(Message message);

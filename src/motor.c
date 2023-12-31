@@ -66,7 +66,7 @@ void processMessage(Message message) {
       break;
     }
     case CLIENT_MOVE: {
-      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+      for(int i = 0; i < gameInfo.nPlayers; i++) {
         if(gameInfo.players[i].pid == message.pid) {
           char* x = strtok(message.message, " ");
           char* y = strtok(NULL, " ");
@@ -78,7 +78,7 @@ void processMessage(Message message) {
     }
     case CLIENT_PLAYERS: {
       char* playersList = (char*) malloc(sizeof(char) * ((MAXLEN + 1) * MAX_PLAYERS));
-      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+      for(int i = 0; i < gameInfo.nPlayers; i++) {
         strcat(playersList, gameInfo.players[i].username);
         strcat(playersList, " ");
       }
@@ -100,12 +100,10 @@ void processMessage(Message message) {
     case CLIENT_MSG: {
       char* username = strtok(message.message, " ");
       char* msg = strtok(NULL, " ");
-      wprintw(janelaOutput, "username: %s\t", username);
-      wprintw(janelaOutput, "msg: %s\n", msg);
       Message fwd;
       fwd.pid = getpid();
       fwd.messageID = SERVER_MSG;
-      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+      for(int i = 0; i < gameInfo.nPlayers; i++) {
         if(gameInfo.players[i].pid == message.pid)
           strcpy(fwd.message, gameInfo.players[i].username);
       }
@@ -113,10 +111,8 @@ void processMessage(Message message) {
       strcat(fwd.message, ": ");
       strcat(fwd.message, msg);
 
-      wprintw(janelaOutput, "msg: %s\n", fwd.message);
-
       int clientPID;
-      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+      for(int i = 0; i < gameInfo.nPlayers; i++) {
         if(!strcmp(gameInfo.players[i].username, username))
           clientPID = gameInfo.players[i].pid;
       }
@@ -129,15 +125,23 @@ void processMessage(Message message) {
       break;
     }
     case CLIENT_DISCONNECT: {
-      for(int i = 0; i <= gameInfo.nPlayers; i++) {
+      for(int i = 0; i < gameInfo.nPlayers; i++) {
         if(gameInfo.players[i].pid == message.pid) {
-          // TODO put i in last
+          if (i != (gameInfo.nPlayers - 1)) {           // Replace player in position i with the last player
+            gameInfo.players[i].pid = gameInfo.players[gameInfo.nPlayers - 1].pid;
+            gameInfo.players[i].x = gameInfo.players[gameInfo.nPlayers - 1].x;
+            gameInfo.players[i].y = gameInfo.players[gameInfo.nPlayers - 1].y;
+            strcpy(gameInfo.players[i].username, gameInfo.players[gameInfo.nPlayers - 1].username);
+          }
           gameInfo.nPlayers--;
+          break;
         }
       }
     }
+    break;
   }
 }
+
 
 // Função que trata do comando test_bot.
 void* testBotCommandCurses(void* arg) {
@@ -290,11 +294,11 @@ void beginCommandCurses() {
 void endCommandCurses() {
 
   Message message;
-  reply.pid = getpid();
-  reply.messageID = SERVER_SHUTDOWN;
-  strcpy(reply.message, "Server Shutdown");
+  message.pid = getpid();
+  message.messageID = SERVER_SHUTDOWN;
+  strcpy(message.message, "Server Shutdown");
 
-  for(int i = 0; i <= gameInfo.nPlayers; i++) {
+  for(int i = 0; i < gameInfo.nPlayers; i++) {
     char clientFIFO_Name[22];
     sprintf(clientFIFO_Name, CLIENT_FIFO, gameInfo.players[i].pid);
     int fdClientFIFO = open(clientFIFO_Name, O_WRONLY);
